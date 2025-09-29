@@ -32,7 +32,7 @@ func main() {
 		}
 
 		updated := crud.UpdateStudentGrade(db_gorm, "张三", "四年级")
-		fmt.Println("update student row : {}", updated)
+		fmt.Println("update student row : ", updated)
 
 		crud.DeleteStudents(db_gorm, 15)
 
