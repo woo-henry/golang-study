@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/henry-woo/golang-study/lesson-sql/curd"
+	"github.com/henry-woo/golang-study/lesson-sql/crud"
 	"github.com/henry-woo/golang-study/lesson-sql/database"
 	"github.com/henry-woo/golang-study/lesson-sql/sqlx"
 	"github.com/henry-woo/golang-study/lesson-sql/transcation"
@@ -14,16 +14,16 @@ func main() {
 	// lesson 1 ~ 2
 	{
 		db_gorm := database.InitGormDatabase()
-		curd.ResetStudentTable(db_gorm)
+		crud.ResetStudentTable(db_gorm)
 
 		// lesson 1
-		curd.CreateStudent(db_gorm, "赵大", 10, "一年级")
-		curd.CreateStudent(db_gorm, "钱二", 12, "二年级")
-		curd.CreateStudent(db_gorm, "张三", 20, "三年级")
-		curd.CreateStudent(db_gorm, "李四", 22, "四年级")
-		curd.CreateStudent(db_gorm, "王五", 23, "五年级")
-		curd.CreateStudent(db_gorm, "谢六", 24, "六年级")
-		students := curd.QueryStudents(db_gorm, 18)
+		crud.CreateStudent(db_gorm, "赵大", 10, "一年级")
+		crud.CreateStudent(db_gorm, "钱二", 12, "二年级")
+		crud.CreateStudent(db_gorm, "张三", 20, "三年级")
+		crud.CreateStudent(db_gorm, "李四", 22, "四年级")
+		crud.CreateStudent(db_gorm, "王五", 23, "五年级")
+		crud.CreateStudent(db_gorm, "谢六", 24, "六年级")
+		students := crud.QueryStudents(db_gorm, 18)
 		student_size := len(students)
 		if student_size > 0 {
 			fmt.Println(students)
@@ -31,10 +31,10 @@ func main() {
 			fmt.Println("Not Found Over 18 Years Old Students")
 		}
 
-		updated := curd.UpdateStudentGrade(db_gorm, "张三", "四年级")
+		updated := crud.UpdateStudentGrade(db_gorm, "张三", "四年级")
 		fmt.Println("update student row : {}", updated)
 
-		curd.DeleteStudents(db_gorm, 15)
+		crud.DeleteStudents(db_gorm, 15)
 
 		// lesson 2
 		transcation.ResetAccountTable(db_gorm)
