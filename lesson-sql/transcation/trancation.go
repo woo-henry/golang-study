@@ -13,7 +13,7 @@ func CreateAccount(db *gorm.DB, name string, balance uint) {
 		db.AutoMigrate(&Account{})
 	}
 
-	db.Debug().Where("name = ?", name).Delete(&Account{})
+	db.Debug().Where("name = ?", name).Unscoped().Delete(&Account{})
 	db.Create(&Account{Name: name, Balance: balance})
 }
 
@@ -34,6 +34,10 @@ func Transfer(db *gorm.DB, transfer_from string, transfer_to string, amount uint
 	fmt.Println(to_account)
 
 	from_account.Balance -= amount
+	db.Debug().Model(&from_account).Update("balance", from_account.Balance)
+
 	to_account.Balance += amount
+	db.Debug().Model(&to_account).Update("balance", to_account.Balance)
+
 	db.Debug().Create(&Transcation{FromAccountID: from_account.ID, ToAccountID: to_account.ID, Amount: amount})
 }
