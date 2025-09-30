@@ -1,6 +1,6 @@
 # Introduce
 ```
-Golang Leanging Code
+Golang Learning Code
 ```
 
 # Project
