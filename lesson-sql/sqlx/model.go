@@ -12,7 +12,7 @@ type Employee struct {
 type Book struct {
 	Id          uint
 	Catalog     string
-	Name        string
+	Title       string
 	Price       float32
 	Author      string
 	Publisher   string

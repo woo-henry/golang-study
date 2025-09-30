@@ -5,10 +5,8 @@ import (
 )
 
 func ResetStudentTable(db *gorm.DB) {
-	var record_count int
-	db.Debug().Raw("SELECT COUNT(*) AS record_count FROM pg_class WHERE relname = 'students';").Scan(&record_count)
-	if record_count == 1 {
-		db.Debug().Exec("DROP TABLE students;")
+	if db.Debug().Migrator().HasTable(&Student{}) {
+		db.Debug().Migrator().DropTable(&Student{})
 	}
 
 	db.Debug().AutoMigrate(&Student{})

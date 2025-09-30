@@ -8,20 +8,16 @@ import (
 )
 
 func ResetAccountTable(db *gorm.DB) {
-	var record_count int
-	db.Debug().Raw("SELECT COUNT(*) AS record_count FROM pg_class WHERE relname = 'accounts';").Scan(&record_count)
-	if record_count == 1 {
-		db.Debug().Exec("DROP TABLE accounts;")
+	if db.Debug().Migrator().HasTable(&Account{}) {
+		db.Debug().Migrator().DropTable(&Account{})
 	}
 
 	db.AutoMigrate(&Account{})
 }
 
 func ResetTranscationTable(db *gorm.DB) {
-	var record_count int
-	db.Debug().Raw("SELECT COUNT(*) AS record_count FROM pg_class WHERE relname = 'transcations';").Scan(&record_count)
-	if record_count == 1 {
-		db.Debug().Exec("DROP TABLE transcations;")
+	if db.Debug().Migrator().HasTable(&Transcation{}) {
+		db.Debug().Migrator().DropTable(&Transcation{})
 	}
 
 	db.AutoMigrate(&Transcation{})

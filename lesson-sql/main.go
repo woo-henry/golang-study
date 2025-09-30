@@ -5,6 +5,7 @@ import (
 
 	"github.com/henry-woo/golang-study/lesson-sql/crud"
 	"github.com/henry-woo/golang-study/lesson-sql/database"
+	"github.com/henry-woo/golang-study/lesson-sql/gorm"
 	"github.com/henry-woo/golang-study/lesson-sql/sqlx"
 	"github.com/henry-woo/golang-study/lesson-sql/transcation"
 )
@@ -12,8 +13,9 @@ import (
 func main() {
 
 	// lesson 1 ~ 2
+	db_gorm := database.InitGormDatabase()
 	{
-		db_gorm := database.InitGormDatabase()
+
 		crud.ResetStudentTable(db_gorm)
 
 		// lesson 1
@@ -73,5 +75,33 @@ func main() {
 		} else {
 			fmt.Println("No Books")
 		}
+	}
+
+	// lesson 5 ~ 7
+	{
+		// lesson 5
+		gorm.ResetUserTable(db_gorm)
+		gorm.ResetPostTable(db_gorm)
+		gorm.ResetCommentTable(db_gorm)
+
+		// lesson 6.1
+		posts := gorm.QueryUserPosts(db_gorm, 1)
+		post_size := len(posts)
+		if post_size > 0 {
+			fmt.Println("Found Post Size = ", post_size)
+			fmt.Println("Found Post = ", posts[0])
+		} else {
+			fmt.Println("Not Found User Posts")
+		}
+
+		// lesson 6.2
+		post := gorm.QueryMaxCommentsPost(db_gorm)
+		fmt.Println(post)
+
+		// lesson 7.1
+		gorm.CreateUserPostWithHook(db_gorm, "测试", "测试", 3)
+
+		// lesson 7.2
+		gorm.DeleteCommentWithHook(db_gorm, 1)
 	}
 }

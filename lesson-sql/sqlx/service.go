@@ -40,7 +40,7 @@ func CreateEmployees(db *sqlx.DB) {
 }
 
 func QueryBestsellingBooks(db *sqlx.DB, price float32) []Book {
-	sql := "select id, catalog, name, price, author, publisher, publish_time from books where price > $1"
+	sql := "select id, catalog, title, price, author, publisher, publish_time from books where price > $1"
 	var books []Book
 	err := db.Select(&books, sql, price)
 	if err != nil {
@@ -53,10 +53,10 @@ func QueryBestsellingBooks(db *sqlx.DB, price float32) []Book {
 func CreateBooks(db *sqlx.DB) {
 	tx := db.MustBegin()
 	tx.MustExec("DELETE FROM books")
-	tx.MustExec("INSERT INTO books (id, catalog, name, price, author, publisher, publish_time) VALUES ($1, $2, $3, $4, $5, $6, $7)", 1, "哲学", "亚里士多德是个话痨", 66.23, "亚里士多德", "古希腊出版社", time.Now())
-	tx.MustExec("INSERT INTO books (id, catalog, name, price, author, publisher, publish_time) VALUES ($1, $2, $3, $4, $5, $6, $7)", 2, "商业", "风口来了吗？", 55.34, "雷布斯", "小米出版社", time.Now())
-	tx.MustExec("INSERT INTO books (id, catalog, name, price, author, publisher, publish_time) VALUES ($1, $2, $3, $4, $5, $6, $7)", 3, "科技", "Golang 实践与应用", 44.45, "说英雄是英雄", "微软出版社", time.Now())
-	tx.NamedExec("INSERT INTO books (id, catalog, name, price, author, publisher, publish_time) VALUES (:id, :catalog, :name, :price, :author, :publisher, :publish_time)", &Book{4, "艺术", "眉毛上的蚂蚁", 33.56, "哈拉", "WhatApp出版社", time.Now()})
-	tx.NamedExec("INSERT INTO books (id, catalog, name, price, author, publisher, publish_time) VALUES (:id, :catalog, :name, :price, :author, :publisher, :publish_time)", &Book{5, "教科书", "葡萄牙语入门教材", 22.99, "飞哥", "北京胡同出版社", time.Now()})
+	tx.MustExec("INSERT INTO books (id, catalog, title, price, author, publisher, publish_time) VALUES ($1, $2, $3, $4, $5, $6, $7)", 1, "哲学", "亚里士多德是个话痨", 66.23, "亚里士多德", "古希腊出版社", time.Now())
+	tx.MustExec("INSERT INTO books (id, catalog, title, price, author, publisher, publish_time) VALUES ($1, $2, $3, $4, $5, $6, $7)", 2, "商业", "风口来了吗？", 55.34, "雷布斯", "小米出版社", time.Now())
+	tx.MustExec("INSERT INTO books (id, catalog, title, price, author, publisher, publish_time) VALUES ($1, $2, $3, $4, $5, $6, $7)", 3, "科技", "Golang 实践与应用", 44.45, "说英雄是英雄", "微软出版社", time.Now())
+	tx.NamedExec("INSERT INTO books (id, catalog, title, price, author, publisher, publish_time) VALUES (:id, :catalog, :title, :price, :author, :publisher, :publish_time)", &Book{4, "艺术", "眉毛上的蚂蚁", 33.56, "哈拉", "WhatApp出版社", time.Now()})
+	tx.NamedExec("INSERT INTO books (id, catalog, title, price, author, publisher, publish_time) VALUES (:id, :catalog, :title, :price, :author, :publisher, :publish_time)", &Book{5, "教科书", "葡萄牙语入门教材", 22.99, "飞哥", "北京胡同出版社", time.Now()})
 	tx.Commit()
 }
