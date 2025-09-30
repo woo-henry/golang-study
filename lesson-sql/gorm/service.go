@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"fmt"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -94,10 +93,6 @@ func CreateUserPostWithHook(db *gorm.DB, title string, content string, user_id u
 		UserID:  user_id,
 	})
 	tx.Commit()
-}
-
-func UpdatePostCallback(db *gorm.DB) {
-	fmt.Println("UpdatePostCallback Call............................")
 }
 
 func (c *Comment) AfterDelete(tx *gorm.DB) (err error) {
