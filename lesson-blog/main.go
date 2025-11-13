@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/henry-woo/golang-study/lesson-blog/controller"
 	"github.com/henry-woo/golang-study/lesson-blog/database"
@@ -16,16 +18,17 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.TokenAuthMiddleware())
 
-	router.POST("/register", controller.UserRegister)
-	router.POST("/login", controller.UserLogin)
+	public := router.Group("/public")
+	public.POST("/register", controller.UserRegister)
+	public.POST("/login", controller.UserLogin)
 
-	router.POST("/post/create", controller.PostCreate)
-	router.POST("/post/delete", controller.PostRemove)
-	router.POST("/post/update", controller.PostUpdate)
-	router.GET("/post/query", controller.PostQuery)
+	api := router.Group("/api/v1")
+	api.POST("/post/create", controller.PostCreate)
+	api.POST("/post/delete", controller.PostRemove)
+	api.POST("/post/update", controller.PostUpdate)
+	api.GET("/post/query", controller.PostQuery)
+	api.POST("/comment/create", controller.CommentCreate)
+	api.GET("/comment/query", controller.CommentQuery)
 
-	router.POST("/comment/create", controller.CommentCreate)
-	router.GET("/comment/query", controller.CommentQuery)
-
-	router.Run() // default listen on 0.0.0.0:8080
+	log.Fatal(router.Run(":8080"))
 }
