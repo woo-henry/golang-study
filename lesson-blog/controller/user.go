@@ -1,70 +1,106 @@
 package controller
 
 import (
+	"context"
 	"net/http"
-	"time"
+	"strconv"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/henry-woo/golang-study/lesson-blog/internal/authorize"
+	"github.com/henry-woo/golang-study/lesson-blog/internal/store"
 	"github.com/henry-woo/golang-study/lesson-blog/model"
 	"github.com/henry-woo/golang-study/lesson-blog/service"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func UserRegister(c *gin.Context) {
-	var user model.User
-	if err := c.ShouldBindJSON(&user); err != nil {
+func Register(c *gin.Context) {
+	var in struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := c.ShouldBindJSON(&in); err != nil {
 		RespondWithError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
 	if err != nil {
-		RespondWithError(c, http.StatusInternalServerError, "Failed to hash password")
+		RespondWithError(c, http.StatusInternalServerError, "failed to hash password")
 		return
 	}
+
+	user := model.User{}
+	user.Username = in.Username
 	user.Password = string(hashedPassword)
 
 	createdUser, created := service.CreateUser(&user)
 	if createdUser == nil || !created {
-		RespondWithError(c, http.StatusInternalServerError, "Failed to create user")
+		RespondWithError(c, http.StatusInternalServerError, "failed to create user")
 		return
 	}
 
-	RespondWithSuccess(c, http.StatusCreated, "User registered successfully")
+	RespondWithSuccess(c, http.StatusOK, "user register successfully")
 }
 
-func UserLogin(c *gin.Context) {
-	var user model.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		RespondWithError(c, http.StatusBadRequest, err.Error())
+func Login(c *gin.Context) {
+	var in struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := c.ShouldBindJSON(&in); err != nil {
+		RespondWithError(c, http.StatusUnauthorized, "invalid request")
 		return
 	}
 
-	existUser, exist := service.ExistUser(&user)
+	existUser, exist := service.FindUserByUsername(in.Username)
 	if existUser == nil || !exist {
-		RespondWithError(c, http.StatusUnauthorized, "User not found")
+		RespondWithError(c, http.StatusUnauthorized, "user not found")
 		return
 	}
 
-	// 验证密码
-	if err := bcrypt.CompareHashAndPassword([]byte(existUser.Password), []byte(user.Password)); err != nil {
-		RespondWithError(c, http.StatusUnauthorized, "Invalid username or password")
+	if err := bcrypt.CompareHashAndPassword([]byte(existUser.Password), []byte(in.Password)); err != nil {
+		RespondWithError(c, http.StatusUnauthorized, "invalid username or password")
 		return
 	}
 
-	// 生成 JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id":       existUser.ID,
-		"username": existUser.Username,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte("your_secret_key"))
+	toks, err := authorize.IssueTokens(strconv.Itoa(int(existUser.ID)))
 	if err != nil {
-		RespondWithError(c, http.StatusInternalServerError, "Failed to generate token")
+		RespondWithError(c, http.StatusInternalServerError, "could not issue tokens")
 		return
 	}
 
-	RespondWithSuccess(c, http.StatusCreated, tokenString)
+	redis_client := store.RedisClient()
+	if err := authorize.Persist(c, redis_client, toks); err != nil {
+		RespondWithError(c, http.StatusInternalServerError, "could not persist tokens")
+		return
+	}
+
+	authorize.SetAuthCookies(c, toks)
+
+	RespondWithSuccess(c, http.StatusOK, toks)
+}
+
+func Logout(c *gin.Context) {
+	access_token, _ := c.Cookie("access_token")
+	refresh_token, _ := c.Cookie("refresh_token")
+	context := context.Background()
+	redis_client := store.RedisClient()
+
+	if access_token != "" {
+		if claims, err := authorize.ParseAccess(access_token); err == nil {
+			_ = redis_client.DelJTI(context, "access:"+claims.ID)
+		}
+	}
+
+	if refresh_token != "" {
+		if claims, err := authorize.ParseRefresh(refresh_token); err == nil {
+			_ = redis_client.DelJTI(context, "refresh:"+claims.ID)
+		}
+	}
+
+	authorize.ClearAuthCookies(c)
+
+	RespondWithSuccess(c, http.StatusOK, "user logout success")
 }

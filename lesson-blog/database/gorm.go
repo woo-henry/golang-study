@@ -1,16 +1,47 @@
 package database
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func InitGormDatabase() *gorm.DB {
-	//dsn := "root:pass@tcp(127.0.0.1:3306)/golang-lesson?charset=utf8mb4&parseTime=True&loc=Local"
-	dsn := "host=localhost user=golang-lesson password=golang-lesson dbname=golang-lesson port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+var (
+	instance *gorm.DB = nil
+	mutex    sync.Mutex
+)
+
+func GetInstance() *gorm.DB {
+	mutex.Lock()
+	if instance == nil {
+		instance = OpenDatabase()
+	}
+	mutex.Unlock()
+
+	return instance
+}
+
+func OpenDatabase() *gorm.DB {
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	DbHost := os.Getenv("DB_HOST")
+	DbPort := os.Getenv("DB_PORT")
+	DbName := os.Getenv("DB_NAME")
+	DbUser := os.Getenv("DB_USER")
+	DbPassword := os.Getenv("DB_PASSWORD")
+
+	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable TimeZone=Asia/Shanghai", DbHost, DbPort, DbName, DbUser, DbPassword)
+	//dsn := "host=localhost user=golang-lesson password=golang-lesson dbname=golang-lesson port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database")

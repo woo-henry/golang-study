@@ -1,4 +1,4 @@
-package auth
+package authorize
 
 import (
 	"context"
@@ -15,73 +15,77 @@ import (
 )
 
 type Tokens struct {
-	Access   string
-	Refresh  string
-	JTIAcc   string
-	JTIRef   string
-	ExpAcc   time.Time
-	ExpRef   time.Time
-	UserID   string
-	Issuer   string
-	Audience string
+	AccessToken         string    `josn:"access_token"`
+	RefreshToken        string    `josn:"refresh_token"`
+	JTIAccessToken      string    `josn:"jit_access_token"`
+	JTIRefreshToken     string    `josn:"jit_refresh_token"`
+	ExpiredAccessToken  time.Time `josn:"expired_access_token"`
+	ExpiredRefreshToken time.Time `josn:"expired_refresh_token"`
+	UserID              string    `josn:"user_id"`
+	Issuer              string    `josn:"issuer"`
+	Audience            string    `josn:"audience"`
 }
 
 func IssueTokens(userID string) (*Tokens, error) {
 	now := time.Now().UTC()
 	t := &Tokens{
-		UserID:   userID,
-		JTIAcc:   uuid.NewString(),
-		JTIRef:   uuid.NewString(),
-		ExpAcc:   now.Add(15 * time.Minute),
-		ExpRef:   now.Add(7 * 24 * time.Hour),
-		Issuer:   "jwt-blog-app",
-		Audience: "jwt-blog-client",
+		UserID:              userID,
+		JTIAccessToken:      uuid.NewString(),
+		JTIRefreshToken:     uuid.NewString(),
+		ExpiredAccessToken:  now.Add(15 * time.Minute),
+		ExpiredRefreshToken: now.Add(7 * 24 * time.Hour),
+		Issuer:              "jwt-blog-app",
+		Audience:            "jwt-blog-client",
 	}
 
 	acc := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Subject:   userID,
-		ID:        t.JTIAcc,
+		ID:        t.JTIAccessToken,
 		Issuer:    t.Issuer,
 		Audience:  jwt.ClaimStrings{t.Audience},
 		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(t.ExpAcc),
+		ExpiresAt: jwt.NewNumericDate(t.ExpiredAccessToken),
 	})
 
 	ref := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Subject:   userID,
-		ID:        t.JTIRef,
+		ID:        t.JTIRefreshToken,
 		Issuer:    t.Issuer,
 		Audience:  jwt.ClaimStrings{t.Audience},
 		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(t.ExpRef),
+		ExpiresAt: jwt.NewNumericDate(t.ExpiredRefreshToken),
 	})
 
 	var err error
-	t.Access, err = acc.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
+	t.AccessToken, err = acc.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
 	if err != nil {
 		return nil, err
 	}
-	t.Refresh, err = ref.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
+
+	t.RefreshToken, err = ref.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
 	if err != nil {
 		return nil, err
 	}
+
 	return t, nil
 }
 
 func Persist(ctx context.Context, r *store.Redis, t *Tokens) error {
-	if err := r.SetJTI(ctx, "access:"+t.JTIAcc, t.UserID, t.ExpAcc); err != nil {
+	if err := r.SetJTI(ctx, "access:"+t.JTIAccessToken, t.UserID, t.ExpiredAccessToken); err != nil {
 		return err
 	}
-	if err := r.SetJTI(ctx, "refresh:"+t.JTIRef, t.UserID, t.ExpRef); err != nil {
+
+	if err := r.SetJTI(ctx, "refresh:"+t.JTIRefreshToken, t.UserID, t.ExpiredRefreshToken); err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func SetAuthCookies(c *gin.Context, t *Tokens) {
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("access_token", t.Access, int(time.Until(t.ExpAcc).Seconds()), "/", "", true, true)
-	c.SetCookie("refresh_token", t.Refresh, int(time.Until(t.ExpRef).Seconds()), "/", "", true, true)
+	c.SetCookie("access_token", t.AccessToken, int(time.Until(t.ExpiredAccessToken).Seconds()), "/", "", true, true)
+	c.SetCookie("refresh_token", t.RefreshToken, int(time.Until(t.ExpiredRefreshToken).Seconds()), "/", "", true, true)
 }
 
 func ClearAuthCookies(c *gin.Context) {

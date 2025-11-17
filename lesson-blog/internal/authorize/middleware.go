@@ -1,4 +1,4 @@
-package auth
+package authorize
 
 import (
 	"context"
@@ -11,38 +11,41 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func bearerFromHeader(c *gin.Context) string {
+func BearerFromHeader(c *gin.Context) string {
 	h := c.GetHeader("Authorization")
 	if strings.HasPrefix(h, "Bearer ") {
 		return strings.TrimPrefix(h, "Bearer ")
 	}
+
 	return ""
 }
 
-func AuthMiddleware(r *store.Redis) gin.HandlerFunc {
+func AuthorizeMiddleware(r *store.Redis) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenStr, _ := c.Cookie("access_token")
-		if tokenStr == "" {
-			tokenStr = bearerFromHeader(c)
+		access_token, _ := c.Cookie("access_token")
+		if access_token == "" {
+			access_token = BearerFromHeader(c)
 		}
-		if tokenStr == "" {
+
+		if access_token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
 			return
 		}
 
-		claims, err := ParseAccess(tokenStr)
+		claims, err := ParseAccess(access_token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
 
-		ctx := context.Background()
-		if _, err := r.GetUserByJTI(ctx, "access:"+claims.ID); err != nil {
+		context := context.Background()
+		if _, err := r.GetUserByJTI(context, "access:"+claims.ID); err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token revoked"})
 			return
 		}
 
 		c.Set("userID", claims.Subject)
+
 		c.Next()
 	}
 }

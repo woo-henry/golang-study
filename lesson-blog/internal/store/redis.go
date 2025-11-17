@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -10,12 +11,33 @@ import (
 
 type Redis struct{ Client *redis.Client }
 
-func NewRedis() *Redis {
+var (
+	instance *Redis = nil
+	mutex    sync.Mutex
+)
+
+func RedisClient() *Redis {
+	mutex.Lock()
+	if instance == nil {
+		instance = NewRedisClient()
+	}
+	mutex.Unlock()
+
+	return instance
+}
+
+func NewRedisClient() *Redis {
 	addr := os.Getenv("REDIS_ADDR")
 	if addr == "" {
 		addr = "localhost:6379"
 	}
-	rdb := redis.NewClient(&redis.Options{Addr: addr})
+
+	password := os.Getenv("REDIS_PASSWORD")
+	if password == "" {
+		password = "123456"
+	}
+
+	rdb := redis.NewClient(&redis.Options{Addr: addr, Password: password})
 	return &Redis{Client: rdb}
 }
 
